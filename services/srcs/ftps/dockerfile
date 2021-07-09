@@ -1,0 +1,24 @@
+FROM alpine:3.12
+
+RUN apk update && apk upgrade
+
+# устанавливаю NGINX WGET SUPERVISOR
+RUN apk add vsftpd supervisor openssl
+RUN apk add telegraf --repository http://dl-cdn.alpinelinux.org/alpine/edge/community/
+
+COPY ./supervisord.conf /etc/supervisord.conf
+COPY ./vsftpd.conf /etc/vsftpd/vsftpd.conf
+COPY ./telegraf.conf /etc/telegraf/
+
+# Устанавливаем ssh и пользователя
+RUN adduser -D user && echo "user:pass" | chpasswd
+
+# Устанавливаем сертификаты
+RUN openssl req -x509 -nodes -days 365 -subj "/C=RU/ST=Russia/L=Kazan/O=school/OU=21school/CN=drogue" -newkey rsa:2048 -keyout /etc/ssl/vsftpd.key -out /etc/ssl/vsftpd.crt;
+
+RUN mkdir -p home/user/
+RUN chmod -R 755 home/user/
+
+EXPOSE 21 20 20020
+
+CMD /bin/sh -c "/usr/bin/supervisord -c /etc/supervisord.conf"
